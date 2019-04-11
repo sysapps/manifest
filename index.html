@@ -828,7 +828,10 @@
           <a>scope</a> is missing, the navigation scope will be
           <code>/pages/</code> on the same origin. If <a>start_url</a> is
           <code>/pages/</code> (the trailing slash is important!), the
-          navigation scope will be <code>/pages/</code>.
+          navigation scope will be <code>/pages/</code>. If both
+          <a>start_url</a> and <a>scope</a> are missing, they will both default
+          to the parent path of the manifest URL (assuming it is
+          <a>same-origin</a> as the document that referenced it).
         </p>
         <p>
           Developers should take care, if they rely on the default behaviour,
@@ -1370,6 +1373,15 @@
           <li>Return <var>manifest</var> and <var>manifest URL</var>.
           </li>
         </ol>
+        <p class="issue">
+          There is currently no specified way to obtain a manifest without an
+          associated <a>top-level browsing context</a>. However, several user
+          agents do just that (when they install a web application directly
+          from a manifest URL, without a document). This algorithm, and the
+          <a>steps to install the web application</a>, should similarly be
+          written to not require a document. See <a href=
+          "https://github.com/w3c/manifest/issues/668">#668</a>.
+        </p>
         <div class="note">
           <p>
             Authors are encouraged to use the HTTP cache directives to
@@ -1458,9 +1470,9 @@
           following algorithm. The algorithm takes a <a>string</a>
           <var>text</var> as an argument, which represents a <a>manifest</a>,
           and a <a>URL</a> <var>manifest URL</var>, which represents the
-          location of the manifest, and a <a>URL</a> <var>document URL</var>.
-          The output from inputting an JSON document into this algorithm is a
-          <dfn>processed manifest</dfn>.
+          location of the manifest, and an optional <a>URL</a> <var>document
+          URL</var>. The output from inputting an JSON document into this
+          algorithm is a <dfn>processed manifest</dfn>.
         </p>
         <p class="issue">
           We need to catch throws associated with enumerations in IDL
@@ -1821,13 +1833,13 @@
           <var>base</var> URL.
           </li>
           <li>If <var>scope URL</var> is failure:
-            <ul>
+            <ol>
               <li>
                 <a>Issue a developer warning</a>.
               </li>
               <li>Return <var>default</var>.
               </li>
-            </ul>
+            </ol>
           </li>
           <li>If <var>start URL</var> is not <a>within scope</a> of scope URL:
             <ol>
@@ -1996,41 +2008,66 @@
           The steps for <dfn>processing the <code>start_url</code> member</dfn>
           are given by the following algorithm. The algorithm takes a
           <a>USVString</a> <var>value</var>, a <a>URL</a> <var>manifest
-          URL</var>, and a <a>URL</a> <var>document URL</var>. This algorithm
-          returns a <a>URL</a>.
+          URL</var>, and an optional <a>URL</a> <var>document URL</var>. This
+          algorithm returns a <a>URL</a>.
         </p>
         <ol>
+          <li>If <var>document URL</var> is given, and <var>manifest URL</var>
+          is not <a>same origin</a> as <var>document URL</var>, let
+          <var>default</var> be <var>document URL</var>.
+          </li>
+          <li>Otherwise, let <var>default</var> be the result of <a>parsing</a>
+          ".", using <var>manifest URL</var> as the <var>base</var> URL.
+          </li>
           <li>If <var>value</var> is the empty <a>string</a>, return
-          <var>document URL</var>.
+          <var>default</var>.
           </li>
           <li>Let <var>start URL</var> be the result of <a>parsing</a>
           <var>value</var>, using <var>manifest URL</var> as the
           <var>base</var> URL.
           </li>
           <li>If <var>start URL</var> is failure:
-            <ul>
+            <ol>
               <li>
                 <a>Issue a developer warning</a>.
               </li>
-              <li>Return <var>document URL</var>.
+              <li>Return <var>default</var>.
               </li>
-            </ul>
+            </ol>
           </li>
-          <li>If <var>start URL</var> is not <a>same origin</a> as
-          <var>document URL</var>:
+          <li>If <var>document URL</var> is given, and <var>start URL</var> is
+          not <a>same origin</a> as <var>document URL</var>:
             <ol>
               <li>
                 <a>Issue a developer warning</a> that the <a>start_url</a>
                 needs to be <a>same-origin</a> as <code>Document</code> of the
                 <a>top-level browsing context</a>.
               </li>
-              <li>Return <var>document URL</var>.
+              <li>Return <var>default</var>.
               </li>
             </ol>
           </li>
           <li>Otherwise, return <var>start URL</var>.
           </li>
         </ol>
+        <div class="note">
+          <p>
+            The default start URL (if <code>start_url</code> is omitted or an
+            error) is the <var>manifest URL</var>, with its filename, query,
+            and fragment removed.
+          </p>
+          <p>
+            This default was changed in June 2018. Manifest authors might wish
+            to avoid relying on the default behaviour (and explicitly specify
+            this member), as user agents might still respect the previous
+            default (the document URL), or ignore the manifest entirely if
+            <a>start_url</a> is missing.
+          </p>
+          <p>
+            This doesn't apply if the manifest is not <a>same-origin</a> as the
+            document that referenced it.
+          </p>
+        </div>
         <div class="example">
           <p>
             For example, if the value of <a>start_url</a> is
