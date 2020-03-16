@@ -274,7 +274,7 @@
       </section>
     </section>
     <section>
-      <h2>
+      <h2 id="installable-web-applications">
         Installable web applications
       </h2>
       <p>
@@ -331,18 +331,48 @@
         (at the user agent's discretion; see [[[#installability-signals]]]).
         </li>
       </ol>
+      <div class="note" data-link-for="WebAppManifest">
+        <p>
+          The {{Document}} might not be <a data-lt=
+          "within-scope-manifest">within scope</a> of the linked manifest, by
+          design. For example, a page at <code>https://example.com</code> might
+          link a manifest with <a>scope</a> <code>"/installable/"</code>,
+          allowing the top-level page of the site (which itself is not part of
+          the installable web application) to show installation UI.
+        </p>
+        <p>
+          Implementors should be aware of this possibility. One consequence is
+          that if, post install, the user agent opens the document URL in an
+          <a>application context</a>, it would immediately start showing the
+          "out of scope" warning UI (that is recommended in
+          [[[#navigation-scope]]]). Hence, implementors might wish to avoid
+          doing this if the {{Document}} is <a data-lt=
+          "within-scope-manifest">out of scope</a>.
+        </p>
+      </div>
       <section>
         <h3>
           Authority of the manifest's metadata
         </h3>
         <p>
-          When a <a>manifest</a> is linked from a {{Document}}, it indicates to
-          the user agent that the metadata is <dfn>authoritative</dfn>: that
-          is, the user agent SHOULD use the metadata of the manifest instead of
-          the one in the {{Document}}. However, in cases where metadata is
-          missing, or in error, a user agent MAY fallback to the {{Document}}
-          to find suitable replacements for missing manifest members (e.g.,
-          using `application-name` in place of `short_name`).
+          When a <a>manifest</a> is linked from a {{Document}}, and the
+          {{Document}} is <a data-lt="within-scope-manifest">within scope</a>
+          of the manifest, it indicates to the user agent that the metadata is
+          <dfn>authoritative</dfn>: that is, the user agent SHOULD use the
+          metadata of the manifest instead of the one in the {{Document}}.
+          However, in cases where metadata is missing, or in error, a user
+          agent MAY fallback to the {{Document}} to find suitable replacements
+          for missing manifest members (e.g., using `application-name` in place
+          of `short_name`). The user agent MUST NOT apply the metadata of a
+          manifest to a {{Document}} that is not <a data-lt=
+          "within-scope-manifest">within scope</a> of that manifest.
+        </p>
+        <p class="note">
+          A {{Document}} that is not <a data-lt="within-scope-manifest">within
+          scope</a> of a linked manifest can still be used to install the web
+          application associated with the manifest, it just can't have the
+          manifest's metadata applied directly to the document. See the note in
+          [[[#installable-web-applications]]].
         </p>
       </section>
       <section data-link-for="WebAppManifest">
@@ -829,7 +859,7 @@
       </section>
     </section>
     <section>
-      <h2>
+      <h2 id="navigation-scope">
         Navigation scope
       </h2>
       <p data-link-for="WebAppManifest">
