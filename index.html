@@ -295,8 +295,26 @@
             <li>Fall back to using the <a>top-level browsing context</a>
             {{Document}}'s metadata to populate <var>manifest</var> in a
             user-agent-specific way (e.g., setting
-            |manifest|.{{WebAppManifest/name}} to the document [^title^] and
-            considering the document <a>installable</a>.
+            |manifest|["{{WebAppManifest/name}}"] to the document [^title^]),
+            including setting |manifest|["{{WebAppManifest/start_url}}"] to the
+            {{Document}}'s {{Document/URL}}, and
+            |manifest|["{{WebAppManifest/scope}}"] to the result of [=URL
+            Parser|parsing=] "." using the {{Document}}'s {{Document/URL}} as
+            the |base URL|, then considering the document <a>installable</a>.
+            </li>
+            <li>Or, consider the document not <a>installable</a>.
+            </li>
+          </ul>
+        </li>
+        <li>Otherwise, if |manifest|["{{WebAppManifest/start_url}}"] is not
+        present, or not <a>same origin</a> as the {{Document}}'s
+        {{Document/URL}}, the user agent MAY either:
+          <ul>
+            <li>Set |manifest|["{{WebAppManifest/start_url}}"] to the
+            {{Document}}'s {{Document/URL}}, and set
+            |manifest|["{{WebAppManifest/scope}}"] to the result of [=URL
+            Parser|parsing=] "." using the {{Document}}'s {{Document/URL}} as
+            the |base URL|, and consider the document <a>installable</a>.
             </li>
             <li>Or, consider the document not <a>installable</a>.
             </li>
@@ -306,6 +324,14 @@
         {{Document}} <a>installable</a> (see [[[#installability-signals]]]).
         </li>
       </ol>
+      <p class="note">
+        These steps ensure that if the document is [=installable=], the
+        associated [=processed manifest=] has a valid
+        {{WebAppManifest/start_url}} and {{WebAppManifest/scope}} that are
+        [=same origin=] as the {{Document}}'s {{Document/URL}} (and each
+        other).
+      </p>
+      <div class="issue" data-number="912"></div>
       <section>
         <h3>
           Authority of the manifest's metadata
@@ -452,9 +478,14 @@
           navigation scope will be <code>/pages/</code>.
         </p>
         <p>
+          If the <a>start_url</a> member is not present, the manifest will also
+          have no <a>scope</a>.
+        </p>
+        <p>
           Developers should take care, if they rely on the default behavior,
           that all of the application's page URLs begin with the parent path of
-          the start URL. To be safe, explicitly specify <a>scope</a>.
+          the start URL. To be safe, explicitly specify both <a>scope</a> and
+          <a>start_url</a>.
         </p>
       </div>
       <p>
@@ -478,9 +509,10 @@
       <p>
         A [=URL=] |target:URL| is <dfn data-dfn-for="manifest" data-lt=
         "within scope" data-export="">within scope</dfn> of a
-        |manifest:processed manifest| if the |target| is [=URL/within scope=]
-        of |manifest|'s [=manifest/navigation scope=] (i.e., [=URL/within
-        scope=] of |manifest|'s {{WebAppManifest/scope}} member).
+        |manifest:processed manifest| if the |manifest|'s [=manifest/navigation
+        scope=] is not undefined, and the |target| is [=URL/within scope=] of
+        |manifest|'s [=manifest/navigation scope=] (i.e., [=URL/within scope=]
+        of |manifest|'s {{WebAppManifest/scope}} member).
       </p>
       <div class="note" title="Scope is a simple string match">
         The URL string matching in this algorithm is prefix-based rather than
@@ -994,9 +1026,7 @@
           <a data-cite="FETCH#concept-request-body">body</a>.
           </li>
           <li>Let <var>manifest</var> be the result of running <a>processing a
-          manifest</a> given <var>text</var>, <var>manifest URL</var>, and the
-          URL that represents the address of the <a>top-level browsing
-          context</a>.
+          manifest</a> given <var>text</var>, <var>manifest URL</var>.
           </li>
           <li>Return <var>manifest</var> and <var>manifest URL</var>.
           </li>
@@ -1068,9 +1098,8 @@
           following algorithm. The algorithm takes a <a>string</a>
           <var>text</var> as an argument, which represents a <a>manifest</a>,
           and a <a>URL</a> <var>manifest URL</var>, which represents the
-          location of the manifest, and a <a>URL</a> <var>document URL</var>.
-          The output from inputting an JSON document into this algorithm is a
-          <dfn>processed manifest</dfn>.
+          location of the manifest. The output from inputting an JSON document
+          into this algorithm is a <dfn>processed manifest</dfn>.
         </p>
         <p class="issue">
           We need to catch throws associated with enumerations in IDL
@@ -1108,8 +1137,7 @@
           </li>
           <li>Set <var>manifest</var>["<a>start_url</a>"] to the result of
           running <a>processing the <code>start_url</code> member</a> given
-          <var>manifest</var>["<a>start_url</a>"], <var>manifest URL</var>, and
-          <var>document URL</var>.
+          <var>manifest</var>["<a>start_url</a>"] and <var>manifest URL</var>.
           </li>
           <li>Set <var>manifest</var>["<a>lang</a>"] to the result of running
           <a>processing the <code>lang</code> member</a> given
@@ -1468,10 +1496,12 @@
           The steps for <dfn>processing the <code>scope</code> member</dfn> is
           given by the following algorithm. The algorithm takes a
           <a>USVString</a> <var>value</var>, a <a>URL</a> <var>manifest
-          URL</var>, and a URL <var>start URL</var>. This algorithm returns a
-          <a>URL</a>.
+          URL</var>, and a possibly undefined URL <var>start URL</var>. This
+          algorithm returns a <a>URL</a>.
         </p>
         <ol>
+          <li>If <var>start URL</var> is undefined, return undefined.
+          </li>
           <li>Let <var>default</var> be the result of [=URL Parser|parsing=]
           ".", using <var>start URL</var> as the <var>base</var> URL.
           </li>
@@ -1657,13 +1687,11 @@
         <p>
           The steps for <dfn>processing the <code>start_url</code> member</dfn>
           are given by the following algorithm. The algorithm takes a
-          <a>USVString</a> <var>value</var>, a <a>URL</a> <var>manifest
-          URL</var>, and a <a>URL</a> <var>document URL</var>. This algorithm
-          returns a <a>URL</a>.
+          <a>USVString</a> <var>value</var>, and a <a>URL</a> <var>manifest
+          URL</var>. This algorithm returns a <a>URL</a> or undefined.
         </p>
         <ol>
-          <li>If <var>value</var> is the empty <a>string</a>, return
-          <var>document URL</var>.
+          <li>If <var>value</var> is the empty <a>string</a>, return undefined.
           </li>
           <li>Let <var>start URL</var> be the result of [=URL Parser|parsing=]
           <var>value</var>, using <var>manifest URL</var> as the
@@ -1674,21 +1702,9 @@
               <li>
                 <a>Issue a developer warning</a>.
               </li>
-              <li>Return <var>document URL</var>.
+              <li>Return undefined.
               </li>
             </ul>
-          </li>
-          <li>If <var>start URL</var> is not <a>same origin</a> as
-          <var>document URL</var>:
-            <ol>
-              <li>
-                <a>Issue a developer warning</a> that the <a>start_url</a>
-                needs to be <a>same origin</a> as the <code>Document</code> of
-                the <a>top-level browsing context</a>.
-              </li>
-              <li>Return <var>document URL</var>.
-              </li>
-            </ol>
           </li>
           <li>Otherwise, return <var>start URL</var>.
           </li>
