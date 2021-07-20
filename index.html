@@ -181,6 +181,8 @@
         </li>
         <li>[=manifest/icons=]
         </li>
+        <li>[=manifest/identity=]
+        </li>
         <li>[=manifest/lang=]
         </li>
         <li>[=manifest/name=]
@@ -242,6 +244,7 @@
                 "sizes": "128x128"
               }],
               "scope": "/",
+              "id": "superracer",
               "start_url": "/start.html",
               "display": "fullscreen",
               "orientation": "landscape",
@@ -810,6 +813,90 @@
       </section>
       <section>
         <h3>
+          `id` member
+        </h3>
+        <p>
+          The [=manifest's=] <code><dfn data-export="" data-dfn-for=
+          "manifest" id="identity">id</dfn></code> member is a <a>string</a> that
+          represents the <dfn>identity</dfn> for the application. 
+          The |identity| takes the form of a URL, which is same origin as the
+          start URL.
+        </p>
+        <p>The |identity| is used by user agents to uniquely identify the
+        application universally. When the user agent sees a manifest with an
+        |identity| that does not correspond to an already-installed application,
+        it SHOULD treat that manifest as a description of a distinct
+        application, even if it is served from the same URL as that of another
+        application. When the user agent sees a manifest with an |identity|
+        matching that of an already-installed application, it SHOULD be used as
+        a signal that this manifest is a replacement for the already-installed
+        application's manifest, and not a distinct application, even if it is
+        served from a different URL than the one seen previously.
+        </p>
+        <p>
+          The |identity| MAY be used by a service that collects lists of web
+          applications to uniquely identify applications.
+        </p>
+        <p>
+          To <dfn>process the `id` member</dfn>, given [=object=]
+          |json:JSON|, [=ordered map=] |manifest:ordered map|:
+        </p>
+        <ol class="algorithm">
+          <li>Set |manifest|["id"] to |manifest|["start_url"].
+          </li>
+          <li>If the type of |json|["id"] is not [=string=], return.
+          </li>
+          <li>Let |id:URL| be the result of [=URL Parser|parsing=] |json|["id"]
+          with |manifest|["start_ur"]'s origin as the base URL.
+          </li>
+          <li>If |id| is not same origin as |manifest|["start_url"], return.
+          </li>
+          <li>If |id| is failure, return.
+          </li>
+        </ol>
+        <aside class="example">
+          Below table shows some example cases of the |identity| processing algorithm.
+          <table class="data">
+            <tr>
+              <th>|json|["id"]</th>
+              <th>|manifest|["start_url"]</th>
+              <th>|manifest|["id"]</th>
+            </tr>
+            <tr>
+              <td><i>missing</i></td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/resources/start"</td>
+            </tr>
+            <tr>
+              <td>""</td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/"</td>
+            </tr>
+            <tr>
+              <td>"/"</td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/"</td>
+            </tr>
+            <tr>
+              <td>"foo"</td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/foo"</td>
+            </tr>
+            <tr>
+              <td>"https://example.com/foo"</td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/foo"</td>
+            </tr>
+            <tr>
+              <td>"https://anothersite.com/foo"</td>
+              <td>"https://example.com/resources/start"</td>
+              <td>"https://example.com/resources/start"</td>
+            </tr>
+          </table>
+        </aside>
+      </section>
+      <section>
+        <h3>
           `theme_color` member
         </h3>
         <p>
@@ -1085,6 +1172,9 @@
             <li>[=Process the `start_url` member=] passing |json|, |manifest|,
             |manifest URL|, and |document URL|.
             </li>
+            <li>[=Process the `id` member=] passing |json|, |manifest| and
+            |document URL|.
+            </li>
             <li>[=Process the `scope` member=] passing |json|, |manifest|, and
             |manifest URL|.
             </li>
@@ -1210,6 +1300,16 @@
             Updating the manifest
           </h3>
           <aside class="issue" data-number="446"></aside>
+          <p>
+            User agents MAY, at any time, re-fetch and update a manifest for an
+            installed web application and apply updated manifest to any current
+            and future <a>application contexts</a> associated with the
+            application. When the user agent fetches a manifest as part of an
+            update check, it MUST compare the fetched processed manifest's
+            [=manifest/identity=] with the identity of the app being updated. If
+            it is not equal, the user agent MUST NOT update the installed
+            application's manifest. 
+          </p>
         </section>
       </section>
     </section>
